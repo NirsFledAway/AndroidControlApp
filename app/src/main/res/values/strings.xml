@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RoboCar</string>
+    <string name="devices">Bluetooth Devices</string>
+
+    <string name="linearSpeed">Lin. speed</string>
+    <string name="angularSpeed">Ang. speed</string>
+    <string name="connectedSwitch">Connect to transmitter</string>
+    <string name="checkCarConnection">Check car connection</string>
+    <string name="Connected">Connected</string>
+    <string name="Disconnected">Disconnected</string>
+    <string name="CheckCarConnectionButton">Check</string>
+    <string-array name="serialSpeedList">
+        <item>9600</item>
+        <item>115200</item>
+    </string-array>
+</resources>

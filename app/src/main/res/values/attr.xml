@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="graphAttrs">
+        <attr name="handle_color" format="color" />
+        <attr name="background_color" format="color" />
+        <attr name="handle_radius" format="dimension" />
+        <attr name="handle_axis_surplus" format="dimension" />
+        <attr name="handle_are_axis_on" format="boolean" />
+        <attr name="axis_on" format="boolean" />
+    </declare-styleable>
+</resources>
