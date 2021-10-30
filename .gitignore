@@ -1,3 +1,6 @@
+# Specific for project
+.idea
+
 # From https://github.com/tamerlanchik/FoxCode/blob/master/Android%20App/FoxMapNative_1/.gitignore by hands
 *.iml
 .gradle
