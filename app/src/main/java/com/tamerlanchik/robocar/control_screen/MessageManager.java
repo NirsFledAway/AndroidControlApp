@@ -1,4 +1,4 @@
-package com.tamerlanchik.robocar;
+package com.tamerlanchik.robocar.control_screen;
 
 import android.graphics.Point;
 import android.graphics.PointF;

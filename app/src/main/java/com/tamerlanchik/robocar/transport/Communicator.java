@@ -1,6 +1,6 @@
 package com.tamerlanchik.robocar.transport;
 
-public interface Communicator {
+public interface  Communicator {
     void onStart();
     void onStop();
     void onDestroy();

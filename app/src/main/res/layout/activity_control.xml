@@ -7,8 +7,8 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.tamerlanchik.robocar.Joystick
-        android:id="@+id/graph"
+    <com.tamerlanchik.robocar.control_screen.Joystick
+        android:id="@+id/joystick_2"
         android:layout_width="165dp"
         android:layout_height="165dp"
         android:layout_marginEnd="8dp"
@@ -221,14 +221,14 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/joystickValuesTextView"
+        android:id="@+id/joystick_2_text_view"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="4dp"
         android:text="TextView"
         android:textSize="10sp"
-        app:layout_constraintStart_toStartOf="@+id/graph"
-        app:layout_constraintTop_toBottomOf="@+id/graph" />
+        app:layout_constraintStart_toStartOf="@+id/joystick_2"
+        app:layout_constraintTop_toBottomOf="@+id/joystick_2" />
 
     <TextView
         android:id="@+id/commandValuesTextView"
@@ -236,8 +236,8 @@
         android:layout_height="wrap_content"
         android:text="TextView"
         android:textSize="10sp"
-        app:layout_constraintStart_toStartOf="@+id/joystickValuesTextView"
-        app:layout_constraintTop_toBottomOf="@+id/joystickValuesTextView" />
+        app:layout_constraintStart_toStartOf="@+id/joystick_2_text_view"
+        app:layout_constraintTop_toBottomOf="@+id/joystick_2_text_view" />
 
     <LinearLayout
         android:id="@+id/linearLayout3"
@@ -246,8 +246,8 @@
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/graph"
-        tools:context=".ControlActivity">
+        app:layout_constraintTop_toBottomOf="@+id/joystick_2"
+        tools:context=".control_screen.ControlActivity">
 
         <com.jjoe64.graphview.GraphView
             android:id="@+id/graphControl"

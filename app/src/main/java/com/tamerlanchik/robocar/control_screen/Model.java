@@ -1,10 +1,7 @@
-package com.tamerlanchik.robocar;
+package com.tamerlanchik.robocar.control_screen;
 
 import android.content.Context;
 import android.graphics.PointF;
-import android.util.Log;
-
-import java.nio.ByteBuffer;
 
 public class Model {
     private PointF linearSpeed;

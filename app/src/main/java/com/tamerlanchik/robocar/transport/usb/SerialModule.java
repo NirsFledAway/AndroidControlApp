@@ -12,7 +12,7 @@ import android.widget.Toast;
 
 import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
-import com.tamerlanchik.robocar.Logger;
+import com.tamerlanchik.robocar.control_screen.log_subsystem.Logger;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <com.tamerlanchik.robocar.control_screen.Joystick
+        android:id="@+id/joystick_2"
+        android:layout_width="165dp"
+        android:layout_height="165dp"
+        android:layout_marginEnd="16dp"
+        app:axis_on="true"
+        app:handle_color="@color/colorAccent"
+        app:handle_radius="50dp"
+        app:layout_constraintBottom_toBottomOf="@+id/joystick_1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/joystick_1" />
+
+    <com.tamerlanchik.robocar.control_screen.Joystick
+        android:id="@+id/joystick_1"
+        android:layout_width="165dp"
+        android:layout_height="165dp"
+        android:layout_marginStart="16dp"
+        app:axis_on="true"
+        app:handle_color="@color/colorAccent"
+        app:handle_radius="50dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/connectSwitch" />
+
+    <TextView
+        android:id="@+id/joystick_2_text_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        android:textSize="10sp"
+        app:layout_constraintStart_toStartOf="@+id/joystick_2"
+        app:layout_constraintTop_toTopOf="@+id/joystick_2" />
+
+    <TextView
+        android:id="@+id/joystick_1_text_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        android:textSize="10sp"
+        app:layout_constraintEnd_toEndOf="@+id/joystick_1"
+        app:layout_constraintTop_toTopOf="@+id/joystick_1" />
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/top_mfi_view_pager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintBottom_toBottomOf="@+id/joystick_1"
+        app:layout_constraintEnd_toStartOf="@+id/joystick_2"
+        app:layout_constraintStart_toEndOf="@+id/joystick_1"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Switch
+        android:id="@+id/connectSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="Connect"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/top_mfi_view_pager">
+
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graph_view_left"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <com.jjoe64.graphview.GraphView
+            android:id="@+id/graph_view_right"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

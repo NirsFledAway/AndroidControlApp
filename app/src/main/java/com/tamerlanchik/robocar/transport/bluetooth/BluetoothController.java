@@ -9,9 +9,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
-import androidx.lifecycle.Lifecycle;
-
-import com.tamerlanchik.robocar.ControlActivity;
 import com.tamerlanchik.robocar.transport.Communicator;
 import com.tamerlanchik.robocar.transport.UICallback;
 

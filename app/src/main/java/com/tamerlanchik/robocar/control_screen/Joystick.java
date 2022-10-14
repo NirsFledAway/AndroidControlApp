@@ -1,4 +1,4 @@
-package com.tamerlanchik.robocar;
+package com.tamerlanchik.robocar.control_screen;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -8,9 +8,10 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.AttributeSet;
-import android.util.SizeF;
 import android.view.MotionEvent;
 import android.widget.SeekBar;
+
+import com.tamerlanchik.robocar.R;
 
 public class Joystick extends SeekBar {
     private static final String TAG = "JoystickView";
@@ -29,6 +30,7 @@ public class Joystick extends SeekBar {
     private float mButtonAxisSurplus;
     private int mHandleColor;
     private float mHandleRadius;
+    public int mID = 0;
 
     private OnJoystickChangeListener mOnJoystickChangeListener;
 
@@ -41,7 +43,10 @@ public class Joystick extends SeekBar {
     public void setOnJoystickChangeListener(OnJoystickChangeListener listener){
         mOnJoystickChangeListener = listener;
     }
-
+    public Joystick(Context context, AttributeSet attrs, int id) {
+        this(context, attrs);
+        mID = id;
+    }
     public Joystick(Context context, AttributeSet attrs) {
         super(context, attrs);
         parseAttributes(context,attrs);
@@ -169,5 +174,9 @@ public class Joystick extends SeekBar {
         PointF range = new PointF();
         range.set(getWidth(), getHeight());
         return range;
+    }
+    @Override
+    public void setId(int id) {
+        mID = id;
     }
 }

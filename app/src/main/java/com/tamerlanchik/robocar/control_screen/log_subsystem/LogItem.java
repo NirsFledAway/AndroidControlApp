@@ -1,4 +1,4 @@
-package com.tamerlanchik.robocar;
+package com.tamerlanchik.robocar.control_screen.log_subsystem;
 
 import java.util.Date;
 

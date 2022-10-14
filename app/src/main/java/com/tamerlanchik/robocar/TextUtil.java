@@ -12,14 +12,14 @@ import androidx.annotation.ColorInt;
 
 import java.io.ByteArrayOutputStream;
 
-final class TextUtil {
+final public class TextUtil {
 
     @ColorInt static int caretBackground = 0xff666666;
 
-    final static String newline_crlf = "\r\n";
-    final static String newline_lf = "\n";
+    final public static String newline_crlf = "\r\n";
+    final public static String newline_lf = "\n";
 
-    static byte[] fromHexString(final CharSequence s) {
+    public static byte[] fromHexString(final CharSequence s) {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte b = 0;
         int nibble = 0;
@@ -39,21 +39,21 @@ final class TextUtil {
         return buf.toByteArray();
     }
 
-    static String toHexString(final byte[] buf) {
+    public static String toHexString(final byte[] buf) {
         return toHexString(buf, 0, buf.length);
     }
 
-    static String toHexString(final byte[] buf, int begin, int end) {
+    public static String toHexString(final byte[] buf, int begin, int end) {
         StringBuilder sb = new StringBuilder(3*(end-begin));
         toHexString(sb, buf, begin, end);
         return sb.toString();
     }
 
-    static void toHexString(StringBuilder sb, final byte[] buf) {
+    public static void toHexString(StringBuilder sb, final byte[] buf) {
         toHexString(sb, buf, 0, buf.length);
     }
 
-    static void toHexString(StringBuilder sb, final byte[] buf, int begin, int end) {
+    public static void toHexString(StringBuilder sb, final byte[] buf, int begin, int end) {
         for(int pos=begin; pos<end; pos++) {
             if(sb.length()>0)
                 sb.append(' ');

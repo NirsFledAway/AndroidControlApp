@@ -5,7 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import androidx.fragment.app.Fragment;
+
 import androidx.fragment.app.ListFragment;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -15,6 +15,8 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import com.tamerlanchik.robocar.control_screen.ControlActivity;
 
 import java.util.ArrayList;
 import java.util.Collections;

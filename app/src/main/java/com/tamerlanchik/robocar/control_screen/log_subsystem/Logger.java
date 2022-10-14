@@ -1,7 +1,8 @@
-package com.tamerlanchik.robocar;
+package com.tamerlanchik.robocar.control_screen.log_subsystem;
 
 import android.app.Activity;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -10,8 +11,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.tamerlanchik.robocar.R;
+
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Logger {
@@ -22,15 +24,18 @@ public class Logger {
 
     public Logger(Activity context){
         mContext = context;
-        mLogRecyclerView = (RecyclerView) mContext.findViewById(R.id.log_recycle_view);
-        mLogRecyclerView.setLayoutManager(new LinearLayoutManager(mContext));
-        mLogMessagesList = LogStorage.get(context);
+    }
+
+    public void create(View view, LogStorage logStorage) {
+        mLogMessagesList = logStorage;
         mAdapter = new LogAdapter(mLogMessagesList.getLog());
+        mLogRecyclerView = view.findViewById(R.id.fragment_log_recycle_view);
+        mLogRecyclerView.setLayoutManager(new LinearLayoutManager(mContext));
         mLogRecyclerView.setAdapter(mAdapter);
     }
 
     public void write(String message){
-        write(new LogItem(message));
+//        write(new LogItem(message));
     }
 
     public void write(final LogItem message){
@@ -45,6 +50,13 @@ public class Logger {
         });
     }
 
+    public void writeOnUiThread(final LogItem message){
+        mLogMessagesList.add(message);
+        mAdapter.notifyItemInserted(mAdapter.getItemCount()-1);
+        mLogRecyclerView.scrollToPosition(mAdapter.getItemCount()-1);
+        mLogRecyclerView.getItemAnimator().setMoveDuration(0);
+    }
+
     private class LogHolder extends RecyclerView.ViewHolder{
         private TextView mMessageTextView;
         private TextView mTimeTextView;
@@ -54,9 +66,9 @@ public class Logger {
         public LogHolder(LayoutInflater inflater, ViewGroup parent) {
             super(inflater.inflate(R.layout.log_item, parent, false));
 
-            mMarkImageView = (ImageView) itemView.findViewById(R.id.color_mark_log_mage_view);
-            mMessageTextView = (TextView) itemView.findViewById(R.id.log_message_text_view);
-            mTimeTextView = (TextView) itemView.findViewById(R.id.log_time_text_view);
+            mMarkImageView = itemView.findViewById(R.id.color_mark_log_mage_view);
+            mMessageTextView = itemView.findViewById(R.id.log_message_text_view);
+            mTimeTextView = itemView.findViewById(R.id.log_time_text_view);
             mDateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
         }
 
