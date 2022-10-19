@@ -95,4 +95,14 @@
             android:layout_weight="1" />
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/ping_status_imageview"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/joystick_1"
+        app:layout_constraintStart_toEndOf="@+id/connectSwitch"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/log_mark_incoming_error" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

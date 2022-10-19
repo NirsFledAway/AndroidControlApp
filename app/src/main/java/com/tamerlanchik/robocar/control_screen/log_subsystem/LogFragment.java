@@ -31,11 +31,8 @@ public class LogFragment extends Fragment {
         mLogger = new Logger(requireActivity());
         LogStorage logs = new ViewModelProvider(requireActivity()).get(LogStorage.class);
         mLogger.create(view, logs);
-        logs.getLiveData().observe(requireActivity(), new Observer<LogItem>() {
-            @Override
-            public void onChanged(LogItem logItem) {
-                mLogger.writeOnUiThread(logItem);
-            }
+        logs.getLiveData().observe(requireActivity(), logItem -> {
+            mLogger.notifyItemAdded();
         });
         return view;
     }

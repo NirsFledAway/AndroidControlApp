@@ -9,7 +9,12 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import com.tamerlanchik.robocar.transport.Communicator;
+import com.tamerlanchik.robocar.transport.Event;
+import com.tamerlanchik.robocar.transport.Package;
 import com.tamerlanchik.robocar.transport.UICallback;
 
 import java.io.IOException;
@@ -23,6 +28,8 @@ public class BluetoothController implements Communicator, ServiceConnection, Ser
     private boolean initialStart = true;
     private Connected isConnected = Connected.False;
     private String mDeviceAddress;
+
+    MutableLiveData<Event> mEventLiveData = new MutableLiveData<>();
 
     private void writeLog(UICallback.Event event, String message) {
         ((UICallback)mContext).handleStatus(event, message);
@@ -88,26 +95,25 @@ public class BluetoothController implements Communicator, ServiceConnection, Ser
         }
     }
 
-    private void disconnect() {
+    public boolean disconnect() {
         isConnected = Connected.False;
         mService.disconnect();
-    }
-
-
-
-    @Override
-    public boolean send(String string) {
-        return send(string.getBytes());
+        return true;
     }
 
     @Override
-    public boolean send(byte[] message) {
+    public boolean send(Package message) {
         try {
-            mService.write(message);
+            mService.write(message.getBinary());
         } catch (IOException e) {
             ((UICallback)mContext).handleStatus(UICallback.Event.ERROR, "Cannot send to serial: " + e.toString());
         }
         return false;
+    }
+
+    @Override
+    public LiveData<Event> getOnEventChan() {
+        return mEventLiveData;
     }
 
     @Override
@@ -140,18 +146,19 @@ public class BluetoothController implements Communicator, ServiceConnection, Ser
         } else {
             isConnected = Connected.False;
         }
+        mEventLiveData.postValue(new Event(Event.EventType.CONNECTED));
         ((SerialListener)mContext).onSerialConnect(connected);
     }
 
     @Override
     public void onSerialConnectError(Exception e) {
-        ((SerialListener)mContext).onSerialConnectError(e);
+        mEventLiveData.postValue(new Event(e));
         disconnect();
     }
 
     @Override
     public void onSerialRead(byte[] data) {
-        ((SerialListener)mContext).onSerialRead(data);
+        mEventLiveData.postValue(new Event(new Package(data)));
     }
 
     @Override

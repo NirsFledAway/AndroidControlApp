@@ -1,6 +1,7 @@
 package com.tamerlanchik.robocar.control_screen.log_subsystem;
 
 import android.app.Activity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,20 +40,26 @@ public class Logger {
     }
 
     public void write(final LogItem message){
-        mContext.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mLogMessagesList.add(message);
-                mAdapter.notifyItemInserted(mAdapter.getItemCount()-1);
-                mLogRecyclerView.scrollToPosition(mAdapter.getItemCount()-1);
-                mLogRecyclerView.getItemAnimator().setMoveDuration(0);
-            }
-        });
+//        mContext.runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                mLogMessagesList.add(message);
+//                mAdapter.notifyItemInserted(mAdapter.getItemCount()-1);
+//                mLogRecyclerView.scrollToPosition(mAdapter.getItemCount()-1);
+//                mLogRecyclerView.getItemAnimator().setMoveDuration(0);
+//            }
+//        });
     }
 
     public void writeOnUiThread(final LogItem message){
+        Log.d("Logger 1", Integer.toString(mAdapter.getItemCount()));
         mLogMessagesList.add(message);
-        mAdapter.notifyItemInserted(mAdapter.getItemCount()-1);
+        Log.d("Logger 2", Integer.toString(mAdapter.getItemCount()));
+        notifyItemAdded();
+    }
+
+    public void notifyItemAdded() {
+        mAdapter.notifyItemInserted(mAdapter.getItemCount());
         mLogRecyclerView.scrollToPosition(mAdapter.getItemCount()-1);
         mLogRecyclerView.getItemAnimator().setMoveDuration(0);
     }
