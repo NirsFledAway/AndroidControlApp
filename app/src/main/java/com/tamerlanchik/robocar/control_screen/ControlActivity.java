@@ -196,20 +196,20 @@ public class ControlActivity extends AppCompatActivity implements UICallback, Se
 //            mJoystickViews.get(i).setOnJoystickChangeListener(joystickChangeValueListener);
             setMovementValue(mJoystickValuesTextViews.get(i), new Point(0,0));
         }
-        mScheduler.addTask(TaskScheduler.TaskName.JOYSTICKS, 5000, ()->{
-            runOnUiThread(()->{
-                ArrayList<Point> jValues = new ArrayList<>(mJoystickViews.size());
-                for(int i = 0; i < mJoystickViews.size(); ++i) {
-                    Joystick view = mJoystickViews.get(i);
-                    Point value = view.getValue();
-                    jValues.add(i, value);
-                    setMovementValue(mJoystickValuesTextViews.get(view.mID), value);
-                }
-                String message = "J1: " + jValues.get(0).toString() + "; J2: " + jValues.get(1).toString();
-                mLogger.write(message);
-                mCommunicationHandler.sendJoysticks(jValues);
-            });
-        });
+//        mScheduler.addTask(TaskScheduler.TaskName.JOYSTICKS, 5000, ()->{
+//            runOnUiThread(()->{
+//                ArrayList<Point> jValues = new ArrayList<>(mJoystickViews.size());
+//                for(int i = 0; i < mJoystickViews.size(); ++i) {
+//                    Joystick view = mJoystickViews.get(i);
+//                    Point value = view.getValue();
+//                    jValues.add(i, value);
+//                    setMovementValue(mJoystickValuesTextViews.get(view.mID), value);
+//                }
+//                String message = "J1: " + jValues.get(0).toString() + "; J2: " + jValues.get(1).toString();
+//                mLogger.write(message);
+//                mCommunicationHandler.sendJoysticks(jValues);
+//            });
+//        });
 
         mConnectSwitch = findViewById(R.id.connectSwitch);
         mConnectSwitch.setOnCheckedChangeListener((compoundButton, b) -> {

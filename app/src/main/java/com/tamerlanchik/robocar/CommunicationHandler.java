@@ -1,9 +1,11 @@
 package com.tamerlanchik.robocar;
 
+import android.app.Notification;
 import android.content.Context;
 import android.graphics.Point;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -11,12 +13,16 @@ import com.tamerlanchik.robocar.control_screen.ControlsLivedataDispatcher;
 import com.tamerlanchik.robocar.control_screen.MessageManager;
 import com.tamerlanchik.robocar.control_screen.log_subsystem.LogItem;
 import com.tamerlanchik.robocar.control_screen.log_subsystem.LogStorage;
+import com.tamerlanchik.robocar.transport.CommunicationMediator;
 import com.tamerlanchik.robocar.transport.Communicator;
 import com.tamerlanchik.robocar.transport.MessageBuilderV1;
 import com.tamerlanchik.robocar.transport.Package;
 import com.tamerlanchik.robocar.transport.bluetooth.BluetoothController;
 import com.tamerlanchik.robocar.transport.bluetooth.SerialListener;
+import com.tamerlanchik.robocar.transport.wifi.WifiController;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Timer;
@@ -35,17 +41,24 @@ public class CommunicationHandler implements SerialListener {
     boolean hexEnabled = false;
     boolean pendingNewline = false;
     String newline = TextUtil.newline_crlf;
+    Socket mSocket;
+    CommunicationMediator<Package> mCommunicatorMediator;
 
     public enum Connected { False, Pending, True }
 
 //    cmd labels. From 0x00 to 0xff (1 byte)
-    private int PING_LABEL = 0x1;
+    private int PING_LABEL = 47;
     private int JOYSTICKS_LABEL = 0x10;
 
     public CommunicationHandler(AppCompatActivity context, String deviceAddress) {
         mContext = context;
-        mCommunicator = new BluetoothController(context, deviceAddress);
+//        mCommunicator = new BluetoothController(context, deviceAddress);
+        mCommunicator = new WifiController("10.0.2.2",8082);
         mLogger = new ViewModelProvider(context).get(LogStorage.class);
+
+        mCommunicatorMediator = new CommunicationMediator<>(mCommunicator);
+        mCommunicatorMediator.start();
+        mCommunicatorMediator.getLooper();
 
         mControlsDispatcher = new ViewModelProvider(context).get(ControlsLivedataDispatcher.class);
         mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, true).observe(context, (value)->{
@@ -64,14 +77,29 @@ public class CommunicationHandler implements SerialListener {
         });
 
         mControlsDispatcher.getData(ControlsLivedataDispatcher.PING_CMD, true).observe(context, (value)->{
-            ping();
+            int pingVal = (int)(Math.random() * 100 + 1);
+
+            ping(pingVal);
+//            ping(Integer.getInteger(val));
         });
     }
 
-    public void ping() {
-        String data = Integer.toString((int)(Math.random() * 100 + 1));
+    public void ping(int value) {
+//        String data = Integer.toString((int)(Math.random() * 100 + 1));
+        ByteBuffer data = ByteBuffer.allocate(1);
+        data.put((byte)value);
         try {
-            send(MessageBuilderV1.build(PING_LABEL, data));
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        sendOnQueue(MessageBuilderV1.build(PING_LABEL, data.array()).setKey(PING_LABEL));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+
         } catch (Exception e)
         {
             Log.e(TAG, "Bad ping label");
@@ -79,7 +107,34 @@ public class CommunicationHandler implements SerialListener {
     }
 
     public void send(Package pkg) {
-        mCommunicator.send(pkg);
+        if (mSocket == null) {
+            try {
+                mSocket = new Socket("10.0.2.2", 8082);
+            } catch (IOException e) {
+                Log.e(TAG, "Cannot create ping socket");
+                return;
+
+            }
+        }
+        try {
+            mSocket.getOutputStream().write(pkg.getBinary());
+            mSocket.getOutputStream().flush();
+//            socket.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Cannot write ping to socket");
+            mSocket = null;
+            return;
+        }
+
+        Log.d(TAG, "Ping sent");
+
+//        mCommunicator.send(pkg);
+    }
+
+    public void sendOnQueue(Package pkg) {
+        mCommunicatorMediator.enqueueOutput(pkg, pkg.getKey());
+
+//        mCommunicator.send(pkg);
     }
 
     public boolean send(String str) {
@@ -116,17 +171,17 @@ public class CommunicationHandler implements SerialListener {
     }
 
     public void sendJoysticks(List<Point> values) {
-        ByteBuffer buffer = ByteBuffer.allocate(4*4);
-        for (int i = 0; i < 2; ++i) {
-            Point p = values.get(i);
-            buffer.putInt(p.x, p.y);
-        }
-        try {
-            send(MessageBuilderV1.build(JOYSTICKS_LABEL, buffer.array()));
-        } catch (Exception e)
-        {
-            Log.e(TAG, "Bad joystick label");
-        }
+//        ByteBuffer buffer = ByteBuffer.allocate(4*4);
+//        for (int i = 0; i < 2; ++i) {
+//            Point p = values.get(i);
+//            buffer.putInt(p.x, p.y);
+//        }
+//        try {
+//            send(MessageBuilderV1.build(JOYSTICKS_LABEL, buffer.array()));
+//        } catch (Exception e)
+//        {
+//            Log.e(TAG, "Bad joystick label");
+//        }
     }
 
 
@@ -159,6 +214,7 @@ public class CommunicationHandler implements SerialListener {
     }
 
     public void onDestroy() {
+        mCommunicatorMediator.quit();
         mCommunicator.onDestroy();
     }
 
