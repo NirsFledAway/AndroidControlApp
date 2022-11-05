@@ -2,6 +2,7 @@ package com.tamerlanchik.robocar.transport;
 
 public class Package {
     byte[] mBinary;
+    int mSize;
     String mKey;
 
     public Package() {}
@@ -10,6 +11,10 @@ public class Package {
     }
     public Package(byte[] data) {
         setBinary(data);
+    }
+    public Package(byte[] data, int size) {
+        setBinary(data);
+        mSize = size;
     }
 
     public String getString() {
@@ -37,5 +42,9 @@ public class Package {
     public Package setKey(int key) {
         this.mKey = Integer.toString(key);
         return this;
+    }
+
+    public int getSize() {
+        return mSize;
     }
 }

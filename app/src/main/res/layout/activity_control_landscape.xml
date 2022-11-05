@@ -105,4 +105,26 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/log_mark_incoming_error" />
 
+    <TextView
+        android:id="@+id/ping_value_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginStart="4dp"
+        android:text="0"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@+id/ping_status_imageview"
+        app:layout_constraintStart_toEndOf="@+id/ping_status_imageview"
+        app:layout_constraintTop_toTopOf="@+id/ping_status_imageview" />
+
+    <TextView
+        android:id="@+id/ping_value_postfix_textview"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginStart="2dp"
+        android:text="ms"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="@+id/ping_value_textview"
+        app:layout_constraintStart_toEndOf="@+id/ping_value_textview"
+        app:layout_constraintTop_toTopOf="@+id/ping_value_textview" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

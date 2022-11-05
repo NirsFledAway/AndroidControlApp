@@ -1,10 +1,17 @@
-package com.tamerlanchik.robocar.transport;
+package com.tamerlanchik.robocar.transport.binary_tools;
+
+import com.tamerlanchik.robocar.transport.Package;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class MessageBuilderV1 {
+    public static class Message {
+        public int label;
+        public byte[] payload;
+    }
 //    Format:
 //    <Label>: 1 byte
 //    <DataSize>: 4 byte
@@ -29,5 +36,13 @@ public class MessageBuilderV1 {
 
         pkg.setBinary(bf.array());
         return pkg;
+    }
+
+    public static Message unpack(Package pkg) {
+        Message msg = new Message();
+        byte[] array = pkg.getBinary();
+        msg.label = array[0];
+        msg.payload = Arrays.copyOfRange(array, 1, pkg.getSize());
+        return msg;
     }
 }

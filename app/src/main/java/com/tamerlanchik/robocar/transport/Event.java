@@ -2,9 +2,9 @@ package com.tamerlanchik.robocar.transport;
 
 public class Event {
     public enum EventType {RECEIVED, ERROR, CONNECTED, DISCONNECTED}
-    EventType mType;
-    Package mPackage;
-    Exception mException;
+    public EventType mType;
+    public Package mPackage;
+    public Exception mException;
 
     public Event(EventType type) {
         mType = type;

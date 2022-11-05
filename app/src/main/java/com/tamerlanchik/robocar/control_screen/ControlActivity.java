@@ -52,6 +52,7 @@ public class ControlActivity extends AppCompatActivity implements UICallback, Se
     private ToggleButton mConnectionButton;
     private Switch mConnectSwitch;
     private ImageView mPingStatusImageView;
+    TextView mPingValueTextView;
     private List<Joystick> mJoystickViews = new ArrayList<>();
     private List<TextView> mJoystickValuesTextViews = new ArrayList<>();
 
@@ -65,7 +66,7 @@ public class ControlActivity extends AppCompatActivity implements UICallback, Se
     ControlsLivedataDispatcher mControlsDispatcher;
 
     private Timer mSendControlTimer;
-    private TaskScheduler mScheduler = new TaskScheduler();
+    private TaskScheduler mScheduler;
 
 //    keys
     final String CONNECT_KEY = "connect_switch";
@@ -222,6 +223,7 @@ public class ControlActivity extends AppCompatActivity implements UICallback, Se
         });
 
         mPingStatusImageView = findViewById(R.id.ping_status_imageview);
+        mPingValueTextView = findViewById(R.id.ping_value_textview);
 
 
         Intent intent = getIntent();
@@ -233,28 +235,46 @@ public class ControlActivity extends AppCompatActivity implements UICallback, Se
 
         mCommunicationHandler = new CommunicationHandler(this, deviceAddress);
 
-        // Ping status checking
-        mScheduler.addTask(TaskScheduler.TaskName.PING, 1000, ()->{
-            LiveData<String> res = mControlsDispatcher.addData(ControlsLivedataDispatcher.PING_CMD, "", true);
-            Timer t = new Timer();
-            Observer<String> o = (item) -> {
-                t.cancel();
-                mPingStatusImageView.setImageDrawable(getResources().getDrawable(R.drawable.log_mark_incoming));
-            };
-            t.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    runOnUiThread(()-> {
-                        res.removeObserver(o);
-                        mPingStatusImageView.setImageDrawable(getResources().getDrawable(R.drawable.log_mark_error));
-                    });
-                }
-            }, 900);
-
-            runOnUiThread(()->{
-                res.observe(ControlActivity.this, o);
-            });
+        mCommunicationHandler.getOnEventChan().observe(this, (msg)->{
+            switch(msg.what) {
+                case CommunicationHandler.CONNECTION_STATUS_CHANGED:
+                    int markId = R.drawable.log_mark_error;
+                    String pingValue = "0";
+                    if ((long) msg.obj > 0) {
+                        // connected
+                        markId = R.drawable.log_mark_incoming;
+                        pingValue = Long.toString((long) msg.obj);
+                    }
+                    mPingStatusImageView.setImageDrawable(getResources().getDrawable(markId));
+                    mPingValueTextView.setText(pingValue);
+                    break;
+                default:
+                    Log.e(TAG, "Bad CommunicationHandler answer: " + msg.what);
+            }
         });
+
+        // Ping status checking
+//        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING, 1000, ()->{
+//            LiveData<String> res = mControlsDispatcher.addData(ControlsLivedataDispatcher.PING_CMD, "", true);
+//            Timer t = new Timer();
+//            Observer<String> o = (item) -> {
+//                t.cancel();
+//                mPingStatusImageView.setImageDrawable(getResources().getDrawable(R.drawable.log_mark_incoming));
+//            };
+//            t.schedule(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    runOnUiThread(()-> {
+//                        res.removeObserver(o);
+//                        mPingStatusImageView.setImageDrawable(getResources().getDrawable(R.drawable.log_mark_error));
+//                    });
+//                }
+//            }, 900);
+//
+//            runOnUiThread(()->{
+//                res.observe(ControlActivity.this, o);
+//            });
+//        });
     }
 
     void handleJoysticksValues() {

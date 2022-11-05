@@ -8,12 +8,17 @@ import androidx.lifecycle.MutableLiveData;
 import com.tamerlanchik.robocar.transport.Communicator;
 import com.tamerlanchik.robocar.transport.Event;
 import com.tamerlanchik.robocar.transport.Package;
+import com.tamerlanchik.robocar.transport.binary_tools.ByteStuffingPackager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.List;
 
 public class WifiController implements Communicator {
     static final String TAG = "WifiController";
@@ -56,24 +61,44 @@ public class WifiController implements Communicator {
 
     }
 
-    @Override
-    public boolean send(Package pkg) {
+    public boolean maintainSocket() {
         if (mSocket == null) {
+            mSocket = new Socket();
+        }
+        if (!mSocket.isConnected()) {
+            long start = System.currentTimeMillis();
             try {
-                mSocket = new Socket(mDestinationHost, mDestinationPort);
-            } catch (IOException e) {
-                Log.e(TAG, "Cannot create ping socket");
+//                mSocket = new Socket(mDestinationHost, mDestinationPort);
+                mSocket = new Socket();
+                mSocket.connect(new InetSocketAddress(mDestinationHost, mDestinationPort), 100);
+                Thread t = new Thread(()->{
+                    listen();
+                });
+                t.start();
+            } catch (Exception e) {
+                handleError(new Exception("Cannot create ping socket"));
+                Log.e(TAG, "Cannot create ping socket: " + (System.currentTimeMillis() - start));
                 return false;
-
             }
         }
+        return true;
+    }
+
+    @Override
+    public boolean send(Package pkg) {
+        Log.e(TAG, "Message got");
+        if (!maintainSocket()) {
+            return false;
+        }
         try {
-            ByteBuffer packed = packWithByteStuffing(ByteBuffer.wrap(pkg.getBinary()));
-            byte[] bytearray = packed.array();
+            ByteBuffer packed = ByteStuffingPackager.packWithByteStuffing(
+                    ByteBuffer.wrap(pkg.getBinary())
+            );
             mSocket.getOutputStream().write(packed.array());
             mSocket.getOutputStream().flush();
 //            socket.close();
         } catch (IOException e) {
+            handleError(new Exception("Cannot write ping to socket"));
             Log.e(TAG, "Cannot write ping to socket");
             mSocket = null;
             return false;
@@ -81,52 +106,47 @@ public class WifiController implements Communicator {
         return true;
     }
 
-//    private void listen() {
-//        BufferedReader in;
-//        try {
-//            in = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
-//        } catch (IOException e) {
-//            Log.e(TAG, e.getMessage());
-//            return;
-//        }
-//
-//        while (true) {
-//            int label;
-//            try {
-//                label = in.read();
-//            } catch (IOException e) {
-//                Log.e(TAG, e.getMessage());
-//            }
-//            switch(label) {
-//                case
-//            }
-//        }
-//    }
-
-    private ByteBuffer packWithByteStuffing(ByteBuffer src) {
-        final byte borderByte = 0x7E;
-        final byte escapeByte = 0x7D;
-        int len = src.limit();
-        ByteBuffer dest = ByteBuffer.allocate(len+2);
-        dest.put(borderByte);
-        for (int i = 0; i < len; ++i) {
-            byte srcByte = src.get(i);
-            switch (srcByte) {
-                case borderByte:
-                    dest.put(escapeByte);
-                    dest.put((byte)0x5E);
-                    break;
-                case escapeByte:
-                    dest.put(escapeByte);
-                    dest.put((byte)0x5D);
-                    break;
-                default:
-                    dest.put(srcByte);
+    private void listen() {
+        InputStream in;
+        while (mSocket != null && mSocket.isConnected()) {
+            try {
+                in = mSocket.getInputStream();
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage());
+                return;
             }
+            Log.d(TAG, "Client connected");
+            ByteStuffingPackager packager = new ByteStuffingPackager();
+            byte[] buffer = new byte[1024];
+            int bytesRead = 0;
+            while (bytesRead != -1) {
+                try {
+                    bytesRead = in.read(buffer);
+                } catch (IOException e) {
+                    Log.e(TAG, e.getMessage());
+                    bytesRead = -1;
+                }
+                if (bytesRead > 0) {
+                    List<ByteBuffer> res = packager.unpackWithByteStuffing(ByteBuffer.wrap(buffer, 0, bytesRead));
+                    if (res != null && res.size() > 0) {
+                        Log.d(TAG, "Got new answer");
+                        for(ByteBuffer frame : res) {
+                            handleNewFrame(frame);
+                        }
+                    }
+                }
+            }
+            Log.d(TAG, "Client disconnected");
         }
+    }
 
-        dest.put(borderByte);
-        return dest;
+    private void handleNewFrame(ByteBuffer frame) {
+        Package pkg = new Package(frame.array(), frame.position());
+        mEventLiveData.postValue(new Event(pkg, Event.EventType.RECEIVED));
+    }
+
+    private void handleError(Exception err) {
+        mEventLiveData.postValue(new Event(err));
     }
 
     @Override

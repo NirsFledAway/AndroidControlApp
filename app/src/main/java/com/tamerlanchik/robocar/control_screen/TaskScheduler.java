@@ -11,16 +11,24 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class TaskScheduler {
-    public enum TaskName {JOYSTICKS, PING};
+    public enum TaskName {JOYSTICKS, PING, PING_WATCHDOG};
     private List<Task> mSchedule;
+    private static TaskScheduler mInstance;
 
     @FunctionalInterface
     public interface IJob {
         void run();
     }
 
-    public TaskScheduler() {
+    private TaskScheduler() {
         mSchedule = new ArrayList<>(Collections.nCopies(TaskName.values().length, null));
+    }
+
+    public static TaskScheduler get() {
+        if (mInstance == null) {
+            mInstance = new TaskScheduler();
+        }
+        return mInstance;
     }
 
     public void addTask(TaskName name, int period, IJob job) {

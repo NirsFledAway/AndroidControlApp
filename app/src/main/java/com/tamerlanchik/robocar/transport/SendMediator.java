@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 // Инкапсулирует в себе логику Looper+Handler
-public class CommunicationMediator<T> extends HandlerThread {
+public class SendMediator<T> extends HandlerThread {
     static final String TAG = "CommunicationMediator";
     static final int MESSAGE_OUTPUT = 0;
 
@@ -19,7 +19,7 @@ public class CommunicationMediator<T> extends HandlerThread {
 
     Communicator mCommunicator;
 
-    public CommunicationMediator(Communicator communicatorImplementation) {
+    public SendMediator(Communicator communicatorImplementation) {
         super(TAG);
         mCommunicator = communicatorImplementation;
     }
@@ -30,13 +30,14 @@ public class CommunicationMediator<T> extends HandlerThread {
     }
 
     public void enqueueOutput(T pkg, String key) {
-        Log.i(TAG, "Added package to send");
+        Log.e(TAG, "Added package to send");
         if (pkg == null) {
 //            mMessageMap.remove(key);
             return;
         }
 //        mMessageMap.put(key, pkg);
         Message message = mHandler.obtainMessage(MESSAGE_OUTPUT, pkg);
+        Log.e(TAG, "Message obtained");
         message.sendToTarget();
     }
 
