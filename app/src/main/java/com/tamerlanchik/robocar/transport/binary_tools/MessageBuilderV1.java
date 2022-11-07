@@ -12,6 +12,9 @@ public class MessageBuilderV1 {
         public int label;
         public byte[] payload;
     }
+    private interface IMessageBuildAlgorythm {
+        void build(ByteBuffer buffer);
+    }
 //    Format:
 //    <Label>: 1 byte
 //    <DataSize>: 4 byte
@@ -38,11 +41,31 @@ public class MessageBuilderV1 {
         return pkg;
     }
 
+    public static ByteBuffer buildNoLength(int label, byte[] data) throws RuntimeException {
+        int dataLength = data.length;
+        final int LABEL_SIZE = 1;
+        ByteBuffer bf = ByteBuffer.allocate(LABEL_SIZE + dataLength);
+        if (label > 255 || label < 0) {
+            throw new RuntimeException("label > 1 byte or negative");
+        }
+        bf.put((byte)label);
+        bf.put(data);
+        return bf;
+    }
+
     public static Message unpack(Package pkg) {
         Message msg = new Message();
         byte[] array = pkg.getBinary();
         msg.label = array[0];
         msg.payload = Arrays.copyOfRange(array, 1, pkg.getSize());
         return msg;
+    }
+
+    public static byte[] int2bytes(int value, int bytesCount) {
+        byte bytes[] = new byte[bytesCount];
+        for (int i = 0; i < bytesCount; ++i) {
+            bytes[bytesCount - i - 1] = (byte) (value >> 8*i);  // Big Endian
+        }
+        return bytes;
     }
 }

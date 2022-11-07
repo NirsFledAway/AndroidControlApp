@@ -5,11 +5,16 @@ import android.graphics.Point;
 import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.LifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.tamerlanchik.robocar.control_screen.ControlActivity;
@@ -21,6 +26,7 @@ import com.tamerlanchik.robocar.control_screen.log_subsystem.LogStorage;
 import com.tamerlanchik.robocar.transport.Event;
 import com.tamerlanchik.robocar.transport.SendMediator;
 import com.tamerlanchik.robocar.transport.Communicator;
+import com.tamerlanchik.robocar.transport.binary_tools.ByteStuffingPackager;
 import com.tamerlanchik.robocar.transport.binary_tools.MessageBuilderV1;
 import com.tamerlanchik.robocar.transport.Package;
 import com.tamerlanchik.robocar.transport.bluetooth.SerialListener;
@@ -33,7 +39,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class CommunicationHandler implements SerialListener, LifecycleObserver {
+public class CommunicationHandler implements LifecycleEventObserver {
     static final String TAG = "CommunicationHandler";
     Context mContext;
     LogStorage mLogger;
@@ -50,8 +56,6 @@ public class CommunicationHandler implements SerialListener, LifecycleObserver {
 
     MutableLiveData<Message> mEventLiveData = new MutableLiveData<>();
 
-    public enum Connected { False, Pending, True }
-
 //    cmd labels. From 0x00 to 0xff (1 byte)
     static final int PING_LABEL = 47;
     static final int JOYSTICKS_LABEL = 0x10;
@@ -59,11 +63,17 @@ public class CommunicationHandler implements SerialListener, LifecycleObserver {
 // exported event codes
     public static final int CONNECTION_STATUS_CHANGED = 1;
 
-    public CommunicationHandler(AppCompatActivity context, String deviceAddress) {
+    public CommunicationHandler(AppCompatActivity context, String targetAddress) {
         mContext = context;
 //        mCommunicator = new BluetoothController(context, deviceAddress);
 //        mCommunicator = new WifiController("10.0.2.2",8082);
-        mCommunicator = new WifiController("192.168.50.133",8082);
+        String[] address = targetAddress.split(":");
+        if (address.length != 2) {
+            throw new RuntimeException("Bad target address: " + targetAddress);
+        }
+        String host = address[0];
+        int port = Integer.parseInt(address[1]);
+        mCommunicator = new WifiController(host, port);
         mLogger = new ViewModelProvider(context).get(LogStorage.class);
 
         mCommunicatorMediator = new SendMediator<>(mCommunicator);
@@ -71,27 +81,21 @@ public class CommunicationHandler implements SerialListener, LifecycleObserver {
         mCommunicatorMediator.getLooper();
 
         mControlsDispatcher = new ViewModelProvider(context).get(ControlsLivedataDispatcher.class);
-        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, true).observe(context, (value)->{
-            if (Boolean.valueOf(value)) {
-                onResume();
-                Timer t = new Timer();
-                t.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, false).postValue(Boolean.toString(mCommunicator.isConnected()));
-                    }
-                }, 1000*2);
-            } else {
-                onPause();
-            }
-        });
-
-//        mControlsDispatcher.getData(ControlsLivedataDispatcher.PING_CMD, true).observe(context, (value)->{
-//            int pingVal = (int)(Math.random() * 100 + 1);
-//
-//            ping(pingVal);
-////            ping(Integer.getInteger(val));
+//        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, true).observe(context, (value)->{
+//            if (Boolean.valueOf(value)) {
+//                onResume();
+//                Timer t = new Timer();
+//                t.schedule(new TimerTask() {
+//                    @Override
+//                    public void run() {
+//                        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, false).postValue(Boolean.toString(mCommunicator.isConnected()));
+//                    }
+//                }, 1000*2);
+//            } else {
+//                onPause();
+//            }
 //        });
+
         mCommunicator.getOnEventChan().observe(context, (event)-> {
             if (event.mType == Event.EventType.RECEIVED) {
                 handleReceived(event.mPackage);
@@ -155,136 +159,86 @@ public class CommunicationHandler implements SerialListener, LifecycleObserver {
     }
 
     public void ping(int value) {
-//        String data = Integer.toString((int)(Math.random() * 100 + 1));
         ByteBuffer data = ByteBuffer.allocate(1);
         data.put((byte)value);
         Log.e(TAG, "ping()");
-        try {
-//            new Thread(() -> {
-//                try {
-//                    sendOnQueue(MessageBuilderV1.build(PING_LABEL, data.array()).setKey(PING_LABEL));
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }).start();
-            try {
-                sendOnQueue(MessageBuilderV1.build(PING_LABEL, data.array()).setKey(PING_LABEL));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        } catch (Exception e)
-        {
-            Log.e(TAG, "Bad ping label");
-        }
+//      sendOnQueue(MessageBuilderV1.build(PING_LABEL, data.array()).setKey(PING_LABEL));
+        ByteBuffer bf = MessageBuilderV1.buildNoLength(PING_LABEL, data.array());
+        ByteStuffingPackager.packWithByteStuffing(bf);
+        Package pkg = new Package(bf.array());
+        pkg.setKey(PING_LABEL);
+//        sendOnQueue(pkg);
     }
 
     public void sendOnQueue(Package pkg) {
         mCommunicatorMediator.enqueueOutput(pkg, pkg.getKey());
-
-//        mCommunicator.send(pkg);
     }
 
-    public boolean send(String str) {
-        if (!mCommunicator.isConnected()) {
-//        if(connected != Connected.True) {
-            mLogger.write(new LogItem("Not connected", true));
-            return false;
-        }
-        try {
-            String msg;
-            byte[] data;
-            if(hexEnabled) {
-                StringBuilder sb = new StringBuilder();
-                TextUtil.toHexString(sb, TextUtil.fromHexString(str));
-                TextUtil.toHexString(sb, newline.getBytes());
-                msg = sb.toString();
-                data = TextUtil.fromHexString(msg);
-            } else {
-                msg = str;
-                data = (str + newline).getBytes();
-            }
-//            SpannableStringBuilder spn = new SpannableStringBuilder(msg+'\n');
-//            spn.setSpan(new ForegroundColorSpan(mContext.getResources().getColor(R.color.colorSendText)), 0, spn.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-//            receiveText.append(spn);
-//            mLogger.write("Gonna send: " + spn.toString());
-            mCommunicator.send(new Package(data));
-//            service.write(data);
-//            mLogger.write(spn.toString());
-        } catch (Exception e) {
-            onSerialIoError(e);
-            return false;
-        }
-        return true;
-    }
-
-    public void sendJoysticks(List<Point> values) {
-//        ByteBuffer buffer = ByteBuffer.allocate(4*4);
-//        for (int i = 0; i < 2; ++i) {
-//            Point p = values.get(i);
-//            buffer.putInt(p.x, p.y);
+//    public boolean send(String str) {
+//        if (!mCommunicator.isConnected()) {
+//            mLogger.write(new LogItem("Not connected", true));
+//            return false;
 //        }
 //        try {
-//            send(MessageBuilderV1.build(JOYSTICKS_LABEL, buffer.array()));
-//        } catch (Exception e)
-//        {
-//            Log.e(TAG, "Bad joystick label");
+//            String msg;
+//            byte[] data;
+//            if(hexEnabled) {
+//                StringBuilder sb = new StringBuilder();
+//                TextUtil.toHexString(sb, TextUtil.fromHexString(str));
+//                TextUtil.toHexString(sb, newline.getBytes());
+//                msg = sb.toString();
+//                data = TextUtil.fromHexString(msg);
+//            } else {
+//                data = (str + newline).getBytes();
+//            }
+//            mCommunicator.send(new Package(data));
+//        } catch (Exception e) {
+//            onSerialIoError(e);
+//            return false;
 //        }
-    }
+//        return true;
+//    }
 
-
-    public void receive(byte[] data) {
-        mMessagemanager.handleMessage(data);
-    }
-
-    @Override
-    public void onSerialConnect(boolean connected) {
-        if (connected) {
-            mLogger.write("Serial connected");
-        } else {
-            mLogger.write("Serial disconnected");
+    public void sendJoysticks(List<Point> values) {
+        final int INT_LENGTH = 2;
+        ByteBuffer buffer = ByteBuffer.allocate(INT_LENGTH*values.size() * 2);
+        for (Point p : values) {
+//            buffer.putShort((short) -18);
+//            byte[] a = buffer.array();
+            buffer.putShort((short) p.x);
+            buffer.putShort((short) p.y);
+//            buffer.put(MessageBuilderV1.int2bytes(p.x, INT_LENGTH));
+//            buffer.put(MessageBuilderV1.int2bytes(p.y, INT_LENGTH));
         }
+
+        ByteBuffer bf = MessageBuilderV1.buildNoLength(JOYSTICKS_LABEL, buffer.array());
+        ByteStuffingPackager.packWithByteStuffing(bf);
+        Package pkg = new Package(bf.array());
+        pkg.setKey(JOYSTICKS_LABEL);
+        sendOnQueue(pkg);
     }
 
-    @Override
-    public void onSerialConnectError(Exception e) {
-        mLogger.write(new LogItem("Connecton failed: " + e.getMessage(), true));
-    }
-
-    @Override
-    public void onSerialRead(byte[] data) {
-        receive(data);
-    }
-
-    @Override
-    public void onSerialIoError(Exception e) {
-        mLogger.write(new LogItem("Connecion lost: " + e.getMessage(), true));
-    }
-
-    public void onDestroy() {
-        mCommunicatorMediator.quit();
-        mCommunicator.onDestroy();
-    }
-
-    public void onStart() {
-        mCommunicator.onStart();
-    }
-
-    public void onStop() {
-        mCommunicator.onStop();
-    }
-
-    public void onPause() {
-        mLogger.write("Disconnecting...");
-        mCommunicator.onPause();
-    }
-
-    public void onResume() {
-        mLogger.write("Trying to reconnect...");
-        mCommunicator.onResume();
-    }
     public LiveData<Message> getOnEventChan() {
         return mEventLiveData;
+    }
+
+    @Override
+    public void onStateChanged(@NonNull LifecycleOwner source, @NonNull Lifecycle.Event event) {
+        switch(event) {
+            case ON_START:
+                mCommunicator.onStart(); break;
+            case ON_RESUME:
+                mCommunicator.onResume(); break;
+            case ON_PAUSE:
+                mCommunicator.onPause(); break;
+            case ON_STOP:
+                mCommunicator.onStop(); break;
+            case ON_DESTROY:
+                mCommunicatorMediator.quit();
+                mCommunicator.onDestroy();
+                break;
+            default: break;
+        }
     }
 
     class ConnectionChecker {
@@ -321,7 +275,7 @@ public class CommunicationHandler implements SerialListener, LifecycleObserver {
 
             boolean res = answer == mLastSentValue + ADD_VALUE;
             if (res) {
-                mPingTime = System.currentTimeMillis() - mSentTimestamp;
+                mPingTime = (System.currentTimeMillis() - mSentTimestamp) / 2;
                 mLastChecked = System.currentTimeMillis();
             }
             return res;

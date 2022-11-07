@@ -16,9 +16,12 @@ public class ByteStuffingPackager {
     ByteBuffer mUnpackBuffer = ByteBuffer.allocate(1024);
     byte[] mTempBytes = null;
     boolean isCollectingNow = false;
+    public static ByteBuffer packWithByteStuffing(byte[] src) {
+        ByteBuffer buff = ByteBuffer.wrap(src);
+        return packWithByteStuffing(buff);
+    }
 
     public static ByteBuffer packWithByteStuffing(ByteBuffer src) {
-
         int len = src.limit();
         ByteBuffer dest = ByteBuffer.allocate(len+2);
         dest.put(borderByte);

@@ -11,7 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class TaskScheduler {
-    public enum TaskName {JOYSTICKS, PING, PING_WATCHDOG};
+    public enum TaskName {JOYSTICKS, JOYSTICKS_UI_UPDATE, PING, PING_WATCHDOG};
     private List<Task> mSchedule;
     private static TaskScheduler mInstance;
 

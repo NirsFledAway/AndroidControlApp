@@ -29,6 +29,7 @@ public class WifiController implements Communicator {
     Socket mSocket;
     String mDestinationHost;
     int mDestinationPort;
+    Thread mListeningThread;
 
     public WifiController(String host, int port) {
         mDestinationHost = host;
@@ -71,10 +72,14 @@ public class WifiController implements Communicator {
 //                mSocket = new Socket(mDestinationHost, mDestinationPort);
                 mSocket = new Socket();
                 mSocket.connect(new InetSocketAddress(mDestinationHost, mDestinationPort), 100);
-                Thread t = new Thread(()->{
+                if (mListeningThread != null) {
+                    mListeningThread.interrupt();
+                }
+                mListeningThread = new Thread(()->{
                     listen();
                 });
-                t.start();
+                mListeningThread.setDaemon(true);
+                mListeningThread.start();
             } catch (Exception e) {
                 handleError(new Exception("Cannot create ping socket"));
                 Log.e(TAG, "Cannot create ping socket: " + (System.currentTimeMillis() - start));
