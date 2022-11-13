@@ -16,6 +16,7 @@ import android.widget.ToggleButton;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -37,8 +38,7 @@ import java.util.TimerTask;
 
 public class ControlActivity extends AppCompatActivity {
     private static final String TAG = "Main Activity";
-    private String deviceAddress = "192.168.50.133:8082";   // from physical in Internet wifi network
-//    private String deviceAddress = "10.0.0.2:8082";   // from android emulator
+
 
 //  Primary components
     private LogStorage mLogger;
@@ -46,11 +46,14 @@ public class ControlActivity extends AppCompatActivity {
     ControlsLivedataDispatcher mControlsDispatcher;
 
 //  UI Views
-    private Switch mConnectSwitch;
+    private SwitchCompat mConnectSwitch;
     private ImageView mPingStatusImageView;
     TextView mPingValueTextView;
     private List<Joystick> mJoystickViews = new ArrayList<>();
     private List<TextView> mJoystickValuesTextViews = new ArrayList<>();
+
+// config
+    String deviceAddress;
 //    private SignalGraph mControlGraph, mErrGraph, mSumErrGraph, mGyroValueGraph;
 //    private GraphView mGraphControl;
 //    private LineGraphSeries<DataPoint> mControlSeries;
@@ -100,6 +103,8 @@ public class ControlActivity extends AppCompatActivity {
         mLogger = new ViewModelProvider(this).get(LogStorage.class);
         mLogger.write("Hello!");
 
+        deviceAddress = getResources().getString(R.string.dronAddress);
+
         mControlsDispatcher = new ViewModelProvider(this).get(ControlsLivedataDispatcher.class);
         mCommunicationHandler = new CommunicationHandler(this, deviceAddress);
         getLifecycle().addObserver(mCommunicationHandler);
@@ -126,7 +131,7 @@ public class ControlActivity extends AppCompatActivity {
         mJoystickValuesTextViews.add(findViewById(R.id.joystick_1_text_view));
         mJoystickValuesTextViews.add(findViewById(R.id.joystick_2_text_view));
         Joystick.OnJoystickChangeListener joystickChangeValueListener = new Joystick.OnJoystickChangeListener() {
-            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            final Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onStartTrackingTouch(Joystick g) {
@@ -153,9 +158,9 @@ public class ControlActivity extends AppCompatActivity {
 
     private void initBehaviour() {
         // send joysticks values by timer
-        final int JOYSTICKS_SEND_PERIOD = 1*30;   // ms
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS, JOYSTICKS_SEND_PERIOD, ()->{
-            runOnUiThread(()->{
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS,
+            getResources().getInteger(R.integer.send_joystick_period),
+            ()-> runOnUiThread(()->{
                 ArrayList<Point> jValues = new ArrayList<>(mJoystickViews.size());
                 for(Joystick stick : mJoystickViews) {
                     Point value = stick.getValue();
@@ -165,27 +170,22 @@ public class ControlActivity extends AppCompatActivity {
                     jValues.add(value);
                 }
                 mCommunicationHandler.sendJoysticks(jValues);
-//                String message = String.format("J1: %s; J2: %s", jValues.get(0).toString(), jValues.get(1).toString());
-//                mLogger.write(message);
-            });
-        });
+        }));
 
         // Update Stick TextViews
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS_UI_UPDATE, 50, ()->{
-            runOnUiThread(()->{
-                for(Joystick stick : mJoystickViews) {
-                    Point value = stick.getValue();
-                    String str = "X: " + value.x + " Y: " + value.y;
-                    mJoystickValuesTextViews.get(stick.mID).setText(str);
-                }
-            });
-        });
+        int joysticksSendPeriod = getResources().getInteger(R.integer.send_joystick_period);
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS_UI_UPDATE, joysticksSendPeriod, ()-> runOnUiThread(()->{
+            for(Joystick stick : mJoystickViews) {
+                Point value = stick.getValue();
+                String str = "X: " + value.x + " Y: " + value.y;
+                mJoystickValuesTextViews.get(stick.mID).setText(str);
+            }
+        }));
 
-        mConnectSwitch.setOnCheckedChangeListener((compoundButton, b) -> {
-            mControlsDispatcher.addData(ControlsLivedataDispatcher.CONNECT_KEY, Boolean.toString(b), true);
-        });
+        mConnectSwitch.setOnCheckedChangeListener((compoundButton, b) ->
+                mControlsDispatcher.addData(ControlsLivedataDispatcher.CONNECT_KEY, Boolean.toString(b), true));
         mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, false).observe(this, (res) -> {
-            if (Boolean.valueOf(res) != mConnectSwitch.isChecked()) {
+            if (Boolean.parseBoolean(res) != mConnectSwitch.isChecked()) {
                 mConnectSwitch.toggle();
             }
         });

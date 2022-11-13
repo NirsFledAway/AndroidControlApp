@@ -59,7 +59,7 @@
         app:layout_constraintStart_toEndOf="@+id/joystick_1"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Switch
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/connectSwitch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

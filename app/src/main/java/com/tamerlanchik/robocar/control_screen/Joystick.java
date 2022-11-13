@@ -32,6 +32,8 @@ public class Joystick extends SeekBar {
     private float mHandleRadius;
     public int mID = 0;
 
+    long prevRedrawed;
+
     private OnJoystickChangeListener mOnJoystickChangeListener;
 
     public interface OnJoystickChangeListener{
@@ -126,7 +128,7 @@ public class Joystick extends SeekBar {
             case MotionEvent.ACTION_MOVE:
                 if(mIsToggled) {
                     mCurrent.set(event.getX() - mTouchShift.x, event.getY() - mTouchShift.y);
-                    onValueChanged();
+//                    onValueChanged();
                 }
                 break;
             case MotionEvent.ACTION_UP:
@@ -138,8 +140,11 @@ public class Joystick extends SeekBar {
             default:
                 break;
         }
-
-        invalidate();
+        long curr = System.currentTimeMillis();
+        if (curr - prevRedrawed > 10) {
+            prevRedrawed = curr;
+            invalidate();
+        }
         return true;
     }
 

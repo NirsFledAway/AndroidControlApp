@@ -51,7 +51,7 @@ public class CommunicationHandler implements LifecycleEventObserver {
     boolean isConnected = false;
     String newline = TextUtil.newline_crlf;
     Socket mSocket;
-    SendMediator<Package> mCommunicatorMediator;
+    SendMediator mCommunicatorMediator;
     ConnectionChecker mConnectionChecker = new ConnectionChecker();
 
     MutableLiveData<Message> mEventLiveData = new MutableLiveData<>();
@@ -73,10 +73,10 @@ public class CommunicationHandler implements LifecycleEventObserver {
         }
         String host = address[0];
         int port = Integer.parseInt(address[1]);
-        mCommunicator = new WifiController(host, port);
+        mCommunicator = new WifiController(host, port, mContext.getResources().getBoolean(R.bool.useUDP));
         mLogger = new ViewModelProvider(context).get(LogStorage.class);
 
-        mCommunicatorMediator = new SendMediator<>(mCommunicator);
+        mCommunicatorMediator = new SendMediator(mCommunicator);
         mCommunicatorMediator.start();
         mCommunicatorMediator.getLooper();
 
@@ -125,8 +125,8 @@ public class CommunicationHandler implements LifecycleEventObserver {
     }
 
     private void initTasks() {
-        final int PING_INTERVAL = 300;
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING, PING_INTERVAL, ()->{
+        int pingInterval = mContext.getResources().getInteger(R.integer.ping_period);   // ms
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING, pingInterval, ()->{
             Log.e(TAG, "Gonna check ping");
             int checkValue = mConnectionChecker.newCheck();
             if (checkValue > 0) {
@@ -135,8 +135,8 @@ public class CommunicationHandler implements LifecycleEventObserver {
                 mLogger.write(new LogItem("Ping check race!", true));
             }
         });
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING_WATCHDOG, PING_INTERVAL*3, ()->{
-            if (!mConnectionChecker.statusActive((int)(PING_INTERVAL*2.5))) {
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING_WATCHDOG, 3*pingInterval, ()->{
+            if (!mConnectionChecker.statusActive((int)(pingInterval*2.5))) {
                 mConnectionChecker.onError();  // flush internal state
                 updateConnectionStatus(-1);
             }
@@ -167,7 +167,7 @@ public class CommunicationHandler implements LifecycleEventObserver {
         ByteStuffingPackager.packWithByteStuffing(bf);
         Package pkg = new Package(bf.array());
         pkg.setKey(PING_LABEL);
-//        sendOnQueue(pkg);
+        sendOnQueue(pkg);
     }
 
     public void sendOnQueue(Package pkg) {

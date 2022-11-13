@@ -6,13 +6,15 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 // Инкапсулирует в себе логику Looper+Handler
-public class SendMediator<T> extends HandlerThread {
+public class SendMediator extends HandlerThread {
     static final String TAG = "CommunicationMediator";
     static final int MESSAGE_OUTPUT = 0;
+    HashMap<String, Package> mSendQueue = new HashMap<>();
 
     Handler mHandler;
 //    ConcurrentMap<String, T> mMessageMap = new ConcurrentHashMap<>();
@@ -29,15 +31,15 @@ public class SendMediator<T> extends HandlerThread {
         return super.quit();
     }
 
-    public void enqueueOutput(T pkg, String key) {
-        Log.e(TAG, "Added package to send");
+    public void enqueueOutput(Package pkg, String key) {
         if (pkg == null) {
-//            mMessageMap.remove(key);
             return;
         }
-//        mMessageMap.put(key, pkg);
+//        if (mSendQueue.containsKey(pkg.getKey())) {
+//            return;
+//        }
+//        mSendQueue.put(pkg.getKey(), pkg);
         Message message = mHandler.obtainMessage(MESSAGE_OUTPUT, pkg);
-        Log.e(TAG, "Message obtained");
         message.sendToTarget();
     }
 
@@ -48,15 +50,12 @@ public class SendMediator<T> extends HandlerThread {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == MESSAGE_OUTPUT) {
-                    T pkg = (T) msg.obj;
+                    Package pkg = (Package) msg.obj;
                     doSendMessage(pkg);
+//                    mSendQueue.remove(pkg.getKey());
                 }
             }
         };
-    }
-
-    private void doSendMessage(final T pkg) {
-        doSendMessage((Package) pkg);
     }
 
     private void doSendMessage(final Package pkg) {

@@ -23,7 +23,7 @@ public class ByteStuffingPackager {
 
     public static ByteBuffer packWithByteStuffing(ByteBuffer src) {
         int len = src.limit();
-        ByteBuffer dest = ByteBuffer.allocate(len+2);
+        ByteBuffer dest = ByteBuffer.allocate(len*2);
         dest.put(borderByte);
         for (int i = 0; i < len; ++i) {
             byte srcByte = src.get(i);
