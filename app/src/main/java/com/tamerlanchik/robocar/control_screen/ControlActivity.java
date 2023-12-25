@@ -8,33 +8,22 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Log;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.tamerlanchik.robocar.CommunicationHandler;
 import com.tamerlanchik.robocar.R;
-import com.tamerlanchik.robocar.control_screen.log_subsystem.LogItem;
 import com.tamerlanchik.robocar.control_screen.log_subsystem.LogStorage;
 //import com.tamerlanchik.robocar.control_screen.log_subsystem.ViewPagerFragmentAdapter;
-import com.tamerlanchik.robocar.transport.UICallback;
-import com.tamerlanchik.robocar.transport.bluetooth.SerialListener;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class ControlActivity extends AppCompatActivity {
     private static final String TAG = "Main Activity";
@@ -158,19 +147,19 @@ public class ControlActivity extends AppCompatActivity {
 
     private void initBehaviour() {
         // send joysticks values by timer
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS,
-            getResources().getInteger(R.integer.send_joystick_period),
-            ()-> runOnUiThread(()->{
-                ArrayList<Point> jValues = new ArrayList<>(mJoystickViews.size());
-                for(Joystick stick : mJoystickViews) {
-                    Point value = stick.getValue();
-                    if (Math.abs(value.x) < 40) {   // dead zone, to prevent accidentally movements
-                        value.x = 0;
-                    }
-                    jValues.add(value);
-                }
-                mCommunicationHandler.sendJoysticks(jValues);
-        }));
+//        TaskScheduler.get().addTask(TaskScheduler.TaskName.JOYSTICKS,
+//            getResources().getInteger(R.integer.send_joystick_period),
+//            ()-> runOnUiThread(()->{
+//                ArrayList<Point> jValues = new ArrayList<>(mJoystickViews.size());
+//                for(Joystick stick : mJoystickViews) {
+//                    Point value = stick.getValue();
+//                    if (Math.abs(value.x) < 40) {   // dead zone, to prevent accidentally movements
+//                        value.x = 0;
+//                    }
+//                    jValues.add(value);
+//                }
+//                mCommunicationHandler.sendJoysticks(jValues);
+//        }));
 
         // Update Stick TextViews
         int joysticksSendPeriod = getResources().getInteger(R.integer.send_joystick_period);
@@ -184,7 +173,7 @@ public class ControlActivity extends AppCompatActivity {
 
         mConnectSwitch.setOnCheckedChangeListener((compoundButton, b) ->
                 mControlsDispatcher.addData(ControlsLivedataDispatcher.CONNECT_KEY, Boolean.toString(b), true));
-        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, false).observe(this, (res) -> {
+        mControlsDispatcher.getChan(ControlsLivedataDispatcher.CONNECT_KEY, false).observe(this, (res) -> {
             if (Boolean.parseBoolean(res) != mConnectSwitch.isChecked()) {
                 mConnectSwitch.toggle();
             }

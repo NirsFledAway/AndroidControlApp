@@ -3,7 +3,7 @@
     <integer name="ping_period">300</integer>
     <integer name="send_joystick_period">20</integer>
     <bool name="useUDP">true</bool>
-    <string name="dronAddress">192.168.50.133:8082</string> <!-- from physical in Internet wifi network -->
+    <string name="dronAddress">192.168.0.6:8081</string> <!-- from physical in Internet wifi network -->
 <!--    <string name="dronAddress">10.0.2.2:8082</string> &lt;!&ndash; from android emulator &ndash;&gt;-->
 <!--    <string name="dronAddress">169.254.134.191:8082</string> &lt;!&ndash; from physical in The Gate network &ndash;&gt;-->
 </resources>

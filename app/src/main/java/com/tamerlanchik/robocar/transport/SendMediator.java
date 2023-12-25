@@ -11,10 +11,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 // Инкапсулирует в себе логику Looper+Handler
+// Асинхронно вызывает Communicator::send() в фоновом потоке
 public class SendMediator extends HandlerThread {
     static final String TAG = "CommunicationMediator";
     static final int MESSAGE_OUTPUT = 0;
-    HashMap<String, Package> mSendQueue = new HashMap<>();
+//    HashMap<String, Package> mSendQueue = new HashMap<>();
 
     Handler mHandler;
 //    ConcurrentMap<String, T> mMessageMap = new ConcurrentHashMap<>();
@@ -39,7 +40,9 @@ public class SendMediator extends HandlerThread {
 //            return;
 //        }
 //        mSendQueue.put(pkg.getKey(), pkg);
+        // Взять новое сообщение из пула свободных и заполнить его
         Message message = mHandler.obtainMessage(MESSAGE_OUTPUT, pkg);
+        // Положить сообщение в очередь
         message.sendToTarget();
     }
 

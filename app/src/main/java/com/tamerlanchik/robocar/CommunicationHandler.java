@@ -9,16 +9,15 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
-import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.OnLifecycleEvent;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.tamerlanchik.robocar.control_screen.ControlActivity;
-import com.tamerlanchik.robocar.control_screen.ControlsLivedataDispatcher;
+import com.MAVLink.MAVLinkPacket;
+import com.MAVLink.Messages.MAVLinkPayload;
+import com.MAVLink.enums.MAV_TYPE;
+import com.MAVLink.tamerlanchik.msg_heartbeat;
 import com.tamerlanchik.robocar.control_screen.MessageManager;
 import com.tamerlanchik.robocar.control_screen.TaskScheduler;
 import com.tamerlanchik.robocar.control_screen.log_subsystem.LogItem;
@@ -29,22 +28,18 @@ import com.tamerlanchik.robocar.transport.Communicator;
 import com.tamerlanchik.robocar.transport.binary_tools.ByteStuffingPackager;
 import com.tamerlanchik.robocar.transport.binary_tools.MessageBuilderV1;
 import com.tamerlanchik.robocar.transport.Package;
-import com.tamerlanchik.robocar.transport.bluetooth.SerialListener;
 import com.tamerlanchik.robocar.transport.wifi.WifiController;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class CommunicationHandler implements LifecycleEventObserver {
     static final String TAG = "CommunicationHandler";
     Context mContext;
     LogStorage mLogger;
     MessageManager mMessagemanager;
-    ControlsLivedataDispatcher mControlsDispatcher;
+//    ControlsLivedataDispatcher mControlsDispatcher;
 
     Communicator mCommunicator;
     boolean hexEnabled = false;
@@ -52,7 +47,7 @@ public class CommunicationHandler implements LifecycleEventObserver {
     String newline = TextUtil.newline_crlf;
     Socket mSocket;
     SendMediator mCommunicatorMediator;
-    ConnectionChecker mConnectionChecker = new ConnectionChecker();
+    ConnectionCheckHolder mConnectionChecker = new ConnectionCheckHolder();
 
     MutableLiveData<Message> mEventLiveData = new MutableLiveData<>();
 
@@ -80,7 +75,7 @@ public class CommunicationHandler implements LifecycleEventObserver {
         mCommunicatorMediator.start();
         mCommunicatorMediator.getLooper();
 
-        mControlsDispatcher = new ViewModelProvider(context).get(ControlsLivedataDispatcher.class);
+//        mControlsDispatcher = new ViewModelProvider(context).get(ControlsLivedataDispatcher.class);
 //        mControlsDispatcher.getData(ControlsLivedataDispatcher.CONNECT_KEY, true).observe(context, (value)->{
 //            if (Boolean.valueOf(value)) {
 //                onResume();
@@ -125,8 +120,9 @@ public class CommunicationHandler implements LifecycleEventObserver {
     }
 
     private void initTasks() {
-        int pingInterval = mContext.getResources().getInteger(R.integer.ping_period);   // ms
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING, pingInterval, ()->{
+        final int kPingInterval = mContext.getResources().getInteger(R.integer.ping_period);   // ms
+        // TASK: ping
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING, kPingInterval, ()->{
             Log.e(TAG, "Gonna check ping");
             int checkValue = mConnectionChecker.newCheck();
             if (checkValue > 0) {
@@ -135,8 +131,9 @@ public class CommunicationHandler implements LifecycleEventObserver {
                 mLogger.write(new LogItem("Ping check race!", true));
             }
         });
-        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING_WATCHDOG, 3*pingInterval, ()->{
-            if (!mConnectionChecker.statusActive((int)(pingInterval*2.5))) {
+        // TASK: Ping watchdog
+        TaskScheduler.get().addTask(TaskScheduler.TaskName.PING_WATCHDOG, 3*kPingInterval, ()->{
+            if (!mConnectionChecker.statusActive((int)(kPingInterval*2.5))) {
                 mConnectionChecker.onError();  // flush internal state
                 updateConnectionStatus(-1);
             }
@@ -159,13 +156,23 @@ public class CommunicationHandler implements LifecycleEventObserver {
     }
 
     public void ping(int value) {
-        ByteBuffer data = ByteBuffer.allocate(1);
-        data.put((byte)value);
+        msg_heartbeat msg = new msg_heartbeat(
+            (short) MAV_TYPE.MAV_TYPE_QUADROTOR,
+            mConnectionChecker.newCheck(),
+            3,
+            200,
+            true);
+        MAVLinkPacket packet = msg.pack();
+        byte[] encoded = packet.encodePacket();
+//        byte[] encoded = "Hello".getBytes();
+
+//        ByteBuffer data = ByteBuffer.allocate(1);
+//        data.put((byte)value);
         Log.e(TAG, "ping()");
 //      sendOnQueue(MessageBuilderV1.build(PING_LABEL, data.array()).setKey(PING_LABEL));
-        ByteBuffer bf = MessageBuilderV1.buildNoLength(PING_LABEL, data.array());
-        ByteStuffingPackager.packWithByteStuffing(bf);
-        Package pkg = new Package(bf.array());
+//        ByteBuffer bf = MessageBuilderV1.buildNoLength(PING_LABEL, data.array());
+//        ByteStuffingPackager.packWithByteStuffing(bf);
+        Package pkg = new Package(encoded);
         pkg.setKey(PING_LABEL);
         sendOnQueue(pkg);
     }
@@ -241,26 +248,34 @@ public class CommunicationHandler implements LifecycleEventObserver {
         }
     }
 
-    class ConnectionChecker {
-        int mLastSentValue = 0;
+    // Хранит необходимые для проверки значения
+    class ConnectionCheckHolder {
+        short mLastSentValue = 0;
         boolean mCheckIsPending = false;
+
+
+        // Если новый пинг начинается раньше, чем пришел ответ предыдущего
         int mRaceDetected = 0;
         long mLastChecked = 0;
         long mSentTimestamp = 0;
         long mPingTime = 0;
         long mPrevCheckCall = 0;
 
-        static final int MAX_VAL = 100;
+        static final int MAX_VAL = 256;
         static final int ADD_VALUE = 1;
 
-        public int newCheck() {
+        // @return: -1: race detected, 0..MAX_INT: sent checking value
+        public short newCheck() {
             Log.e(TAG, "Check call interval: " + (System.currentTimeMillis() - mPrevCheckCall));
             mPrevCheckCall = System.currentTimeMillis();
-            if (mCheckIsPending) {
-                mRaceDetected = mRaceDetected < Integer.MAX_VALUE ? mRaceDetected+1 : 1;
-                return -1;
+//            if (mCheckIsPending) {
+//                mRaceDetected = mRaceDetected < Short.MAX_VALUE ? mRaceDetected+1 : 1;
+//                return -1;
+//            }
+            mLastSentValue++;
+            if (mLastSentValue >= MAX_VAL) {
+                mLastSentValue = 0;
             }
-            mLastSentValue = (int)(Math.random() * MAX_VAL + 1);
             mSentTimestamp = System.currentTimeMillis();
             mCheckIsPending = true;
             return mLastSentValue;

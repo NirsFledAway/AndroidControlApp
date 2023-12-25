@@ -28,6 +28,9 @@ public class ControlsLivedataDispatcher extends AndroidViewModel {
         super(application);
     }
 
+    // Put `value` into channel with name `key`
+    // `fromView`: direction, from/to a control view
+    // @return: channel from which answer is to be awaited
     public LiveData<String> addData(final String key, String value, Boolean fromView) {
         if (!mSwitcher.containsKey(key) || mSwitcher.get(key) == null) {
             addData(key);
@@ -40,14 +43,13 @@ public class ControlsLivedataDispatcher extends AndroidViewModel {
             pair.second.postValue(value);
             return pair.first;
         }
-
     }
 
     public void addData(final String key) {
         mSwitcher.put(key, new ChanPair());
     }
 
-    public MutableLiveData<String> getData(final String key, Boolean fromView) {
+    public MutableLiveData<String> getChan(final String key, Boolean fromView) {
         if (!mSwitcher.containsKey(key)) {
             addData(key);
         }
